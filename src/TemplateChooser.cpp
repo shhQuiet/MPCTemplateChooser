@@ -85,10 +85,10 @@ private:
     static mpc::PluginInfo makeInfo()
     {
         mpc::PluginInfo info;
-        info.name = "MPC Template Chooser";
+        info.name = "Startup";
         info.vendor = "Elsewave";
         info.uniqueId = MPC_FOURCC('E', 'L', 't', 'c');
-        info.version = 103;
+        info.version = 104;
         info.isInstrument = false;
         info.numInputs = info.numOutputs = 2;
         return info;
@@ -121,7 +121,7 @@ private:
                 continue;
             }
             if ((action != 0) != startupEnabled() && runHelper(helper, action ? "enable" : "restore") != 0)
-                mpc::log("MPC Template Chooser: could not change startup setting");
+                mpc::log("Elsewave Startup: could not change startup setting");
             if (!stopping_ && request_.load() < 0)
                 setFromDisk();
         }
