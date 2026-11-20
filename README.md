@@ -1,17 +1,15 @@
 # MPC Template Chooser
 
-The **Startup** plugin adds a **Local templates** row to the standalone MPC New Project dialog. It looks for `Templates` or `templates` directly at the root of each mounted internal, SD, USB, and SATA drive. It searches those folders and all their subfolders for `.xpj` projects, skips hidden files and symlinks, and lists templates with the same name separately.
+MPC Template Chooser adds a **Local templates** row to the standalone MPC New Project dialog. It looks for `Templates` or `templates` directly at the root of each mounted internal, SD, USB, and SATA drive. It searches those folders and all their subfolders for `.xpj` projects, skips hidden files and symlinks, and lists templates with the same name separately.
 
 ## MPC X setup
 
-The package targets the original MPC X running MPC OS 3.10.1 or later. Enable **External Plugin Support** under **Preferences → Enhancements**. Extract the **Elsewave - VST - Startup** folder into the `VST2 Plugins` directory on your plugin drive. Load **Startup** into an effect insert and open its **CHOOSER** page. The effect passes audio through unchanged.
+The package targets the original MPC X running MPC OS 3.10.1 or later. Enable **External Plugin Support** under **Preferences → Enhancements**. Extract the **Elsewave - VST - MPC Template Chooser** folder into the `VST2 Plugins` directory on your plugin drive. Load **MPC Template Chooser** into an effect insert and open its **CHOOSER** page. The effect passes audio through unchanged.
 
 - **Enable on** installs a startup hook. It uses the Open MPC startup-configuration reload already present on the target MPC X.
 - **Enable off** removes the hook and restores the original Demos row.
 
-Once enabled, you can remove Startup and the startup hook keeps working. Reinstall the plugin to turn the feature on or off.
-
-Before version 0.1.4, the plugin appeared as **MPC Template Chooser**. When updating, remove the old plugin folder to keep one copy. If a saved project still points to the old installation, add **Startup** to the insert again.
+Once enabled, you can remove Template Chooser and the startup hook keeps working. Reinstall the plugin to turn the feature on or off.
 
 The startup helper finds projects and builds the list before MPC opens. It backs up the existing dialog and replaces the Demos row with **Local templates** when projects are available. Its entries point to the original `.xpj` project files.
 

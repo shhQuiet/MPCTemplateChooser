@@ -22,7 +22,7 @@ def render(path):
         (353, "Turn on Enable and restart MPC. The startup script replaces Demos"),
         (388, "with Local templates on the New Project screen. Pick a project to open it."),
         (450, "Turn off Enable to restore Demos on the next launch."),
-        (510, "Once enabled, you can remove the Startup plugin. The startup script"),
+        (510, "Once enabled, you can remove Template Chooser. The startup script"),
         (545, "keeps working. Reinstall the plugin to turn the feature on or off."),
     ]
     for y, line in instructions:
