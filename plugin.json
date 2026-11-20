@@ -1,7 +1,7 @@
 {
   "name": "MPC Template Chooser",
   "manufacturer": "Elsewave",
-  "version": "0.1.5",
+  "version": "1.0.0",
   "format": "vst2",
   "kind": "effect",
   "uid": "ELtc",
