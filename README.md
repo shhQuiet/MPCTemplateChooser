@@ -6,8 +6,9 @@ MPC Template Chooser adds a **Local templates** row to the standalone MPC New Pr
 
 The package targets the original MPC X running MPC OS 3.10.1 or later. Enable **External Plugin Support** under **Preferences → Enhancements**. Extract the **Elsewave - VST - MPC Template Chooser** folder into the `VST2 Plugins` directory on your plugin drive. Load **MPC Template Chooser** into an effect insert and open its **CHOOSER** page. The effect passes audio through unchanged.
 
-- **Enable on** installs a startup hook. It uses the Open MPC startup-configuration reload already present on the target MPC X.
-- **Enable off** removes the hook and restores the original Demos row.
+- Checking **Enable templates** installs a startup hook. It uses the Open MPC startup-configuration reload already present on the target MPC X.
+- Unchecking **Enable templates** removes the hook and restores the original Demos row.
+- Tap **ⓘ** for setup instructions and **OK** to close them.
 
 Once enabled, you can remove Template Chooser and the startup hook keeps working. Reinstall the plugin to turn the feature on or off.
 

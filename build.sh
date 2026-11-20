@@ -56,6 +56,7 @@ fi
 exec "$TEMPLATE_CHOOSER_ZIG" "$@"
 SH
 chmod +x "$sdk_compiler"
-"$PYTHON" "$project/ui/render_guide.py" "$project/assets/chooser-guide.png"
 "$PYTHON" "$MPC_SDK/tools/build.py" "$project" --target all --zig "$sdk_compiler"
+"$PYTHON" "$project/ui/render_guide.py" "$MPC_SDK" "$project"
+"$PYTHON" "$MPC_SDK/tools/validate.py" "$project" --strict
 "$PYTHON" "$MPC_SDK/tools/package.py" "$project"

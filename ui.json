@@ -3,9 +3,8 @@
   "qlinkGroups": "rows",
   "pages": [{
     "name": "CHOOSER",
-    "background": "chooser-guide.png",
     "controls": [
-      { "param": "Enable", "widget": "switch" }
+      { "param": "Enable templates", "widget": "switch" }
     ]
   }]
 }

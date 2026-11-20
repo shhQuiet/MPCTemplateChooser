@@ -18,7 +18,7 @@ public:
     TemplateChooser() : mpc::Plugin(makeInfo())
     {
         auto reserved = mpc::boolParam("reserved", "Reserved", false);
-        auto enable = mpc::boolParam("enable", "Enable", false);
+        auto enable = mpc::boolParam("enable", "Enable templates", false);
         reserved.automatable = enable.automatable = false;
         addParam(reserved);
         addParam(enable);
@@ -88,7 +88,7 @@ private:
         info.name = "MPC Template Chooser";
         info.vendor = "Elsewave";
         info.uniqueId = MPC_FOURCC('E', 'L', 't', 'c');
-        info.version = 103;
+        info.version = 104;
         info.isInstrument = false;
         info.numInputs = info.numOutputs = 2;
         return info;
