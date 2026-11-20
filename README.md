@@ -4,15 +4,14 @@ MPC Template Chooser adds a **Local templates** row to the standalone MPC New Pr
 
 ## MPC X setup
 
-The package targets the original MPC X running MPC OS 3.10.1 or later. Enable **External Plugin Support** under **Preferences → Enhancements**. Extract the **Elsewave - VST - MPC Template Chooser** folder into the `VST2 Plugins` directory on the internal plugin drive. The helper needs a drive that permits execution. Load **MPC Template Chooser** into an effect insert and open its **CHOOSER** page. The effect passes audio through unchanged.
+The package targets the original MPC X running MPC OS 3.10.1 or later. Enable **External Plugin Support** under **Preferences → Enhancements**. Extract the **Elsewave - VST - MPC Template Chooser** folder into the `VST2 Plugins` directory on your plugin drive. Load **MPC Template Chooser** into an effect insert and open its **CHOOSER** page. The effect passes audio through unchanged.
 
-- **Refresh → Apply** scans the mounted drives and replaces the Demos row. If there are no templates, it restores Demos. Save your work before relaunching MPC to view the new row.
-- **Enable → Apply** also installs the startup refresh for future launches. It uses the Open MPC startup-configuration reload already present on the target MPC X. If that reload is absent, Enable reports **Startup reload missing**. Manual Refresh works independently.
-- **Restore → Apply** reinstates Demos and removes the startup hook. Run it before removing the plugin folder.
+- **Enable on** installs a startup hook. It uses the Open MPC startup-configuration reload already present on the target MPC X.
+- **Enable off** removes the hook and restores the original Demos row. Turn it off before removing the plugin.
 
-The refresh backs up the existing dialog and updates only the Demos row. It generates project entries with paths to the original files.
+The startup helper finds projects and builds the list before MPC opens. It backs up the existing dialog and replaces the Demos row with **Local templates** when projects are available. Its entries point to the original `.xpj` project files.
 
-Startup checks the drive roots and rebuilds the list directly. This step has a 10-second limit, including time for the drives to mount. Use **Refresh** after connecting a drive during a session. If you enabled startup in v0.1.0, use **Enable → Apply** in v0.1.1 to replace the startup configuration.
+The startup scan has a 10-second limit, including time for the drives to mount. Restart MPC after connecting a drive to include its templates in the startup dialog.
 
 Both builds pass SDK validation. Loading a generated tile from the SSD and running the hook through an actual MPC reboot still require an in-app test.
 

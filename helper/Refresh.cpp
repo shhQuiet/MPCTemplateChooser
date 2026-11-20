@@ -397,13 +397,23 @@ int main(int argc, char** argv)
             const Lock lock(layout.state() / "refresh.lock");
             checkHook(layout);
             advanceRevision(layout);
-            fs::remove(layout.hook());
             restoreDemos(layout);
+            fs::remove(layout.hook());
+            fs::remove(layout.state() / "template-refresh");
             return 0;
         }
 
-        if (command == "enable" && !reloadAvailable(layout))
-            return 4;
+        if (command == "enable")
+        {
+            if (!reloadAvailable(layout))
+                return 4;
+            const Lock lock(layout.state() / "refresh.lock");
+            checkHook(layout);
+            advanceRevision(layout);
+            atomicWrite(layout.state() / "template-refresh", readFile(argv[0]), 0755);
+            atomicWrite(layout.hook(), hookContents, 0644);
+            return 0;
+        }
 
         if (command == "boot")
         {
@@ -417,15 +427,8 @@ int main(int argc, char** argv)
         const Lock lock(layout.state() / "refresh.lock");
         if (revision(layout) != initialRevision)
             throw std::runtime_error("A newer refresh finished during the scan");
-        if (command == "enable")
-            checkHook(layout);
         advanceRevision(layout);
         refresh(layout, found);
-        if (command == "enable")
-        {
-            atomicWrite(layout.state() / "template-refresh", readFile(argv[0]), 0755);
-            atomicWrite(layout.hook(), hookContents, 0644);
-        }
 
         std::cout << "Local templates: " << found.size() << " project(s)\n";
         return found.empty() && command == "refresh" ? 3 : 0;

@@ -90,6 +90,8 @@ def main():
         assert len({entry["name"] for entry in local["items"]}) == 5
         run(helper, "refresh", root)
         assert dialog.read_bytes() == updated
+        run(helper, "restore", root)
+        assert dialog.read_bytes() == original
 
         write(root, "usr/lib/systemd/system/acvs.service.wants/mpc-addins-reload.service")
         write(root, str(hook_folder.relative_to(root) / "90-mpc-addins.conf"))
@@ -101,6 +103,7 @@ def main():
             "-p Nice=19 -p IOSchedulingClass=idle /data/local-templates/template-refresh discover\n"
         )
         run(helper, "enable", root)
+        assert dialog.read_bytes() == original
         assert "ExecStartPre=-/data/local-templates/template-refresh boot" in hook.read_text()
         assert "ExecStartPost" not in hook.read_text()
         assert os.access(root / "data/local-templates/template-refresh", os.X_OK)
@@ -113,6 +116,7 @@ def main():
         assert b"Added outside template folder" not in dialog.read_bytes()
         run(helper, "restore", root)
         assert not hook.exists() and dialog.read_bytes() == original
+        assert not (root / "data/local-templates/template-refresh").exists()
 
         mountinfo = root / "proc/self/mountinfo"
         mountinfo.write_text("18 1 179:6 / / ro - ext4 /dev/root ro\n")

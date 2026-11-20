@@ -17,12 +17,13 @@ class TemplateChooser : public mpc::Plugin
 public:
     TemplateChooser() : mpc::Plugin(makeInfo())
     {
-        addControl(mpc::boolParam("reserved", "Reserved", false));
-        addControl(mpc::choiceParam("action", "Action", {"Refresh", "Enable", "Restore"}, 0));
-        addControl(mpc::boolParam("apply", "Apply", false));
-        addControl(mpc::choiceParam("result", "Result",
-            {"Ready", "Working", "Updated", "Enabled", "Restored", "Empty", "No reload", "Failed"}, 0));
+        auto reserved = mpc::boolParam("reserved", "Reserved", false);
+        auto enable = mpc::boolParam("enable", "Enable", false);
+        reserved.automatable = enable.automatable = false;
+        addParam(reserved);
+        addParam(enable);
 #if defined(__linux__)
+        setFromDisk();
         worker_ = std::thread([this] { runWorker(); });
 #endif
     }
@@ -53,22 +54,33 @@ public:
     void parameterChanged(int index, float value) override
     {
 #if defined(__linux__)
-        if (index == kApply && value >= 0.5f)
-        {
-            // Momentary control. The saved project stores the released state.
-            set(kApply, 0);
-            int idle = -1;
-            request_.compare_exchange_strong(idle, getInt(kAction));
-        }
+        if (index == kEnable && !reflectingState_)
+            request_ = value >= 0.5f;
 #else
         (void)index;
         (void)value;
 #endif
     }
 
+#if defined(__linux__)
+    static VstIntPtr dispatch(AEffect* effect, VstInt32 opcode, VstInt32 index,
+                             VstIntPtr value, void* data, float option)
+    {
+        if (opcode != effSetChunk)
+            return mpc::detail::dispatcher(effect, opcode, index, value, data, option);
+
+        // Opening a project must never install or remove a device-wide hook.
+        auto* chooser = static_cast<TemplateChooser*>(effect->object);
+        reflectingState_ = true;
+        const auto result = mpc::detail::dispatcher(effect, opcode, index, value, data, option);
+        chooser->set(kEnable, startupEnabled());
+        reflectingState_ = false;
+        return result;
+    }
+#endif
+
 private:
-    enum Parameters { kReserved, kAction, kApply, kResult };
-    enum Result { Ready, Working, Updated, Enabled, Restored, Empty, NoReload, Failed };
+    enum { kEnable = 1 }; // Parameter 0 absorbs MPC's startup nudge.
 
     static mpc::PluginInfo makeInfo()
     {
@@ -76,54 +88,95 @@ private:
         info.name = "MPC Template Chooser";
         info.vendor = "Elsewave";
         info.uniqueId = MPC_FOURCC('E', 'L', 't', 'c');
-        info.version = 101;
+        info.version = 102;
         info.isInstrument = false;
         info.numInputs = info.numOutputs = 2;
         return info;
     }
 
-    void addControl(mpc::Param control)
+#if defined(__linux__)
+    static bool startupEnabled()
     {
-        control.automatable = false;
-        addParam(control);
+        return access("/data/system/etc/overlay/systemd/system/acvs.service.d/60-local-templates.conf", F_OK) == 0;
     }
 
-#if defined(__linux__)
+    void setFromDisk()
+    {
+        reflectingState_ = true;
+        set(kEnable, startupEnabled());
+        notifyHostParameterChanged(kEnable);
+        reflectingState_ = false;
+    }
+
     void runWorker()
     {
         const std::string helper =
             mpc::contentPath(sizeof(void*) == 4 ? "template-refresh-arm32" : "template-refresh-arm64");
         while (!stopping_)
         {
-            const int action = request_.load();
+            const int action = request_.exchange(-1);
             if (action < 0)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
                 continue;
             }
-            notifyHostParameterChanged(kApply);
-            showResult(Working);
-            const int code = runHelper(helper, action);
-            if (stopping_)
-                break;
-            showResult(code == 0 ? Updated + action : code == 3 ? Empty : code == 4 ? NoReload : Failed);
-            request_ = -1;
+            if ((action != 0) != startupEnabled() && runHelper(helper, action ? "enable" : "restore") != 0)
+                mpc::log("MPC Template Chooser: could not change startup setting");
+            if (!stopping_ && request_.load() < 0)
+                setFromDisk();
         }
     }
 
-    void showResult(int result)
+    struct TemporaryHelper
     {
-        set(kResult, result);
-        notifyHostParameterChanged(kResult);
-    }
+        char path[sizeof("/tmp/mpc-template-chooser-XXXXXX")] = "/tmp/mpc-template-chooser-XXXXXX";
+        bool created = false;
 
-    int runHelper(const std::string& helper, int action)
+        ~TemporaryHelper()
+        {
+            if (created)
+                unlink(path);
+        }
+
+        bool copyFrom(const std::string& source)
+        {
+            std::vector<uint8_t> bytes;
+            if (!mpc::readFile(source, bytes))
+                return false;
+
+            const int fd = mkstemp(path);
+            if (fd < 0)
+                return false;
+            created = true;
+            size_t written = 0;
+            while (written < bytes.size())
+            {
+                const auto count = write(fd, bytes.data() + written, bytes.size() - written);
+                if (count < 0 && errno == EINTR)
+                    continue;
+                if (count <= 0)
+                    break;
+                written += static_cast<size_t>(count);
+            }
+            const bool ready = written == bytes.size() && fchmod(fd, 0700) == 0;
+            return close(fd) == 0 && ready;
+        }
+    };
+
+    int runHelper(const std::string& helper, const char* action)
     {
-        const char* commands[] = {"refresh", "enable", "restore"};
-        char* argv[] = {const_cast<char*>(helper.c_str()), const_cast<char*>(commands[action]), nullptr};
         pid_t child;
-        if (posix_spawn(&child, helper.c_str(), nullptr, nullptr, argv, environ) != 0)
+        const auto spawn = [&](const char* path) {
+            char* args[] = {const_cast<char*>(path), const_cast<char*>(action), nullptr};
+            return posix_spawn(&child, path, nullptr, nullptr, args, environ);
+        };
+        TemporaryHelper temporary;
+        int error = spawn(helper.c_str());
+        if (error == EACCES && temporary.copyFrom(helper))
+            error = spawn(temporary.path);
+        if (error != 0)
             return 1;
+
         int status = 0;
         for (;;)
         {
@@ -137,11 +190,24 @@ private:
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     }
-#endif
 
+    inline static thread_local bool reflectingState_ = false;
     std::atomic<int> request_{-1};
+#endif
     std::atomic<bool> stopping_{false};
     std::thread worker_;
 };
 
+#if defined(__linux__)
+extern "C" MPC_EXPORT AEffect* VSTPluginMain(audioMasterCallback host)
+{
+    if (host && host(nullptr, audioMasterVersion, 0, 0, nullptr, 0.0f) == 0)
+        return nullptr;
+    auto* effect = mpc::detail::createEffect(new TemplateChooser(), host);
+    if (effect)
+        effect->dispatcher = &TemplateChooser::dispatch;
+    return effect;
+}
+#else
 MPC_PLUGIN_ENTRY(TemplateChooser)
+#endif
