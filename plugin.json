@@ -1,0 +1,14 @@
+{
+  "name": "MPC Template Chooser",
+  "manufacturer": "Elsewave",
+  "version": "0.1.0",
+  "format": "vst2",
+  "kind": "effect",
+  "uid": "ELtc",
+  "numInputs": 2,
+  "numOutputs": 2,
+  "category": "Effect",
+  "file32": "VST/mpc-template-chooser-arm32.so",
+  "file64": "VST/mpc-template-chooser-arm64.so",
+  "description": "Build a Local templates row for the MPC New Project dialog."
+}

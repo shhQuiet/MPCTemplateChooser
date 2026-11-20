@@ -1,0 +1,19 @@
+{
+  "kit": "cyan",
+  "qlinkGroups": "rows",
+  "pages": [{
+    "name": "CHOOSER",
+    "controls": [
+      { "param": "Action", "widget": "switch" },
+      { "param": "Apply", "widget": "switch" },
+      { "widget": "text", "text": "Ready", "visibleWhen": { "param": "Result", "choice": "Ready" } },
+      { "widget": "text", "text": "Working", "visibleWhen": { "param": "Result", "choice": "Working" } },
+      { "widget": "text", "text": "List updated", "visibleWhen": { "param": "Result", "choice": "Updated" } },
+      { "widget": "text", "text": "Startup enabled", "visibleWhen": { "param": "Result", "choice": "Enabled" } },
+      { "widget": "text", "text": "Demos restored", "visibleWhen": { "param": "Result", "choice": "Restored" } },
+      { "widget": "text", "text": "No templates found", "visibleWhen": { "param": "Result", "choice": "Empty" } },
+      { "widget": "text", "text": "Startup reload missing", "visibleWhen": { "param": "Result", "choice": "No reload" } },
+      { "widget": "text", "text": "Failed. See log.", "visibleWhen": { "param": "Result", "choice": "Failed" } }
+    ]
+  }]
+}
