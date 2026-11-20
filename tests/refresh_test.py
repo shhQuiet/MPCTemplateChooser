@@ -44,19 +44,24 @@ def main():
 79 32 179:97 / /media/az01-internal-sd rw - ext4 /dev/mmcblk1p1 rw
 93 32 8:2 / /media/My\\040SSD rw - exfat /dev/sda2 rw
 94 32 8:3 / /media/USB rw - vfat /dev/sdb1 rw
+95 32 8:4 / /media/Uppercase rw - vfat /dev/sdc1 rw
+96 32 8:5 / /media/Empty rw - vfat /dev/sdd1 rw
 """)
         write(root, "sdcard/Templates/Stereo.xpj")
         write(root, "sdcard/Templates/.hidden.xpj")
         write(root, "sdcard/Templates/.hidden/Hidden.xpj")
         write(root, "sdcard/Templates/Stereo_[ProjectData]/Kick.wav", b"sample")
         write(root, "sdcard/Projects/Not a template.xpj")
-        write(root, "sdcard/Other/TEMPLATES/Uppercase folder.xpj")
+        write(root, "media/Uppercase/TEMPLATES/Uppercase folder.xpj")
+        (root / "media/Empty").mkdir()
         write(root, "media/az01-internal-sd/Templates/Alias.xpj")
         write(root, "media/acvs-content/Templates/Firmware.xpj")
-        write(root, "media/az01-internal/Projects/templates/Internal.xpj")
-        write(root, 'media/My SSD/Session/Templates/nested/Quote " and café.XPJ')
-        write(root, "media/My SSD/Session/Templates/nested/Stereo.xpj")
-        write(root, "media/USB/Projects/templates/USB Check.xpj")
+        write(root, "media/az01-internal/templates/Internal.xpj")
+        write(root, 'media/My SSD/Templates/nested/Quote " and café.XPJ')
+        write(root, "media/My SSD/Templates/nested/Stereo.xpj")
+        write(root, "media/My SSD/Session/Templates/Outside.xpj")
+        write(root, "media/USB/templates/USB Check.xpj")
+        write(root, "media/USB/Projects/templates/Outside.xpj")
         os.symlink(root / "sdcard", root / "media/USB/loop")
         hook_folder = root / "data/system/etc/overlay/systemd/system/acvs.service.d"
         hook = hook_folder / "60-local-templates.conf"
@@ -77,10 +82,10 @@ def main():
         paths = {entry["fileName"] for entry in local["items"]}
         assert paths == {
             "/sdcard/Templates/Stereo.xpj",
-            "/media/az01-internal/Projects/templates/Internal.xpj",
-            '/media/My SSD/Session/Templates/nested/Quote " and café.XPJ',
-            "/media/My SSD/Session/Templates/nested/Stereo.xpj",
-            "/media/USB/Projects/templates/USB Check.xpj",
+            "/media/az01-internal/templates/Internal.xpj",
+            '/media/My SSD/Templates/nested/Quote " and café.XPJ',
+            "/media/My SSD/Templates/nested/Stereo.xpj",
+            "/media/USB/templates/USB Check.xpj",
         }, paths
         assert len({entry["name"] for entry in local["items"]}) == 5
         run(helper, "refresh", root)
@@ -88,21 +93,26 @@ def main():
 
         write(root, "usr/lib/systemd/system/acvs.service.wants/mpc-addins-reload.service")
         write(root, str(hook_folder.relative_to(root) / "90-mpc-addins.conf"))
+        hook.write_text(
+            "[Service]\n"
+            "# Refresh indexed folders before launch, then discover new folders in the background.\n"
+            "ExecStartPre=-/data/local-templates/template-refresh boot\n"
+            "ExecStartPost=-/usr/bin/systemd-run --no-block --collect --unit=local-templates-discovery "
+            "-p Nice=19 -p IOSchedulingClass=idle /data/local-templates/template-refresh discover\n"
+        )
         run(helper, "enable", root)
         assert "ExecStartPre=-/data/local-templates/template-refresh boot" in hook.read_text()
-        assert "ExecStartPost=-/usr/bin/systemd-run" in hook.read_text()
+        assert "ExecStartPost" not in hook.read_text()
         assert os.access(root / "data/local-templates/template-refresh", os.X_OK)
-        write(root, "sdcard/Templates/Added to known folder.xpj")
-        write(root, "sdcard/Fresh/Templates/Added to new folder.xpj")
+        write(root, "sdcard/Templates/deeper/Added to template folder.xpj")
+        write(root, "media/Empty/Templates/Added to another drive.xpj")
+        write(root, "sdcard/Fresh/Templates/Added outside template folder.xpj")
         run(helper, "boot", root)
-        assert b"Added to known folder" in dialog.read_bytes()
-        assert b"Added to new folder" not in dialog.read_bytes()
-        run(helper, "discover", root)
-        assert b"Added to new folder" in dialog.read_bytes()
+        assert b"Added to template folder" in dialog.read_bytes()
+        assert b"Added to another drive" in dialog.read_bytes()
+        assert b"Added outside template folder" not in dialog.read_bytes()
         run(helper, "restore", root)
         assert not hook.exists() and dialog.read_bytes() == original
-        run(helper, "discover", root)
-        assert dialog.read_bytes() == original
 
         mountinfo = root / "proc/self/mountinfo"
         mountinfo.write_text("18 1 179:6 / / ro - ext4 /dev/root ro\n")

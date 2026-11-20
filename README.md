@@ -1,6 +1,6 @@
 # MPC Template Chooser
 
-MPC Template Chooser adds a **Local templates** row to the standalone MPC New Project dialog. It looks for `.xpj` projects under folders named `Templates` or `templates` on the currently mounted internal, SD, USB, and SATA drives. It searches nested folders, skips hidden files and symlinks, and lists templates with the same name separately.
+MPC Template Chooser adds a **Local templates** row to the standalone MPC New Project dialog. It looks for `Templates` or `templates` directly at the root of each mounted internal, SD, USB, and SATA drive. It searches those folders and all their subfolders for `.xpj` projects, skips hidden files and symlinks, and lists templates with the same name separately.
 
 ## MPC X setup
 
@@ -10,11 +10,11 @@ The package targets the original MPC X running MPC OS 3.10.1 or later. Enable **
 - **Enable → Apply** also installs the startup refresh for future launches. It uses the Open MPC startup-configuration reload already present on the target MPC X. If that reload is absent, Enable reports **Startup reload missing**. Manual Refresh works independently.
 - **Restore → Apply** reinstates Demos and removes the startup hook. Run it before removing the plugin folder.
 
-The refresh backs up the existing dialog and updates only the Demos row. It generates project entries with paths to the original files. A full first scan can take several minutes on a drive with a large directory tree.
+The refresh backs up the existing dialog and updates only the Demos row. It generates project entries with paths to the original files.
 
-At startup, the helper rescans the `Templates` folders it found previously. This updates projects added to those folders and drops projects on missing drives. This step has a 10-second limit, including time for the drives to mount. After MPC launches, a low-priority scan discovers new folders and updates the list for the next launch. Use **Refresh** to discover new folders or drives on demand.
+Startup checks the drive roots and rebuilds the list directly. This step has a 10-second limit, including time for the drives to mount. Use **Refresh** after connecting a drive during a session. If you enabled startup in v0.1.0, use **Enable → Apply** in v0.1.1 to replace the startup configuration.
 
-Both builds pass SDK validation. On an MPC X running 3.10.1.12, the read-only scanner found eight projects across the mounted drives and the ARM plugin dispatched each of its three actions to a temporary test helper. Loading a generated tile from the SSD and running the hook through an actual MPC reboot still require an in-app test.
+Both builds pass SDK validation. Loading a generated tile from the SSD and running the hook through an actual MPC reboot still require an in-app test.
 
 ## Build
 

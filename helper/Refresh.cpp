@@ -29,6 +29,10 @@ using Json = nlohmann::ordered_json;
 constexpr char localTitle[] = "Local templates";
 constexpr char hookContents[] =
     "[Service]\n"
+    "# Scan drive-root template folders before launching MPC.\n"
+    "ExecStartPre=-/data/local-templates/template-refresh boot\n";
+constexpr char previousHookContents[] =
+    "[Service]\n"
     "# Refresh indexed folders before launch, then discover new folders in the background.\n"
     "ExecStartPre=-/data/local-templates/template-refresh boot\n"
     "ExecStartPost=-/usr/bin/systemd-run --no-block --collect --unit=local-templates-discovery "
@@ -178,12 +182,6 @@ struct Template
     std::string path;
 };
 
-struct Scan
-{
-    std::vector<Template> templates;
-    std::vector<std::string> folders;
-};
-
 bool isProject(std::string_view name)
 {
     if (name.size() < 5)
@@ -195,7 +193,7 @@ bool isProject(std::string_view name)
 }
 
 void scanDirectory(const Layout& layout, const std::vector<fs::path>& drives,
-                   const fs::path& directory, bool insideTemplates, Scan& found)
+                   const fs::path& directory, bool driveRoot, std::vector<Template>& found)
 {
     const auto physicalPath = layout.path(directory.c_str());
     const std::unique_ptr<DIR, decltype(&closedir)> stream(opendir(physicalPath.c_str()), closedir);
@@ -219,6 +217,8 @@ void scanDirectory(const Layout& layout, const std::vector<fs::path>& drives,
         const std::string_view name(entry->d_name);
         if (name.empty() || name.front() == '.')
             continue;
+        if (driveRoot && name != "Templates" && name != "templates")
+            continue;
 
         // Most MPC drives report types directly. Avoid a disk stat on every sample file.
         auto type = entry->d_type;
@@ -233,44 +233,20 @@ void scanDirectory(const Layout& layout, const std::vector<fs::path>& drives,
         {
             const auto child = directory / name;
             if (!std::binary_search(drives.begin(), drives.end(), child))
-            {
-                const bool templateFolder = !insideTemplates && (name == "Templates" || name == "templates");
-                if (templateFolder)
-                    found.folders.push_back(child.string());
-                scanDirectory(layout, drives, child, insideTemplates || templateFolder, found);
-            }
+                scanDirectory(layout, drives, child, false, found);
         }
-        else if (type == DT_REG && insideTemplates && isProject(name))
-            found.templates.push_back({std::string(name.substr(0, name.size() - 4)), (directory / name).string()});
+        else if (type == DT_REG && !driveRoot && isProject(name))
+            found.push_back({std::string(name.substr(0, name.size() - 4)), (directory / name).string()});
     }
 }
 
-Scan scan(const Layout& layout, bool indexed = false)
+std::vector<Template> scan(const Layout& layout)
 {
     const auto drives = mountedDrives(layout);
-    Scan found;
-    if (indexed)
-    {
-        const auto index = layout.state() / "folders.json";
-        if (!fs::exists(index))
-            return found;
-        const auto folders = Json::parse(readFile(index)).get<std::vector<std::string>>();
-        for (const auto& folder : folders)
-        {
-            const auto mounted = std::any_of(drives.begin(), drives.end(), [&](const auto& drive) {
-                return folder.rfind(drive.string() + "/", 0) == 0;
-            });
-            if (mounted && fs::symlink_status(layout.path(folder.c_str())).type() == fs::file_type::directory)
-                scanDirectory(layout, drives, folder, true, found);
-        }
-    }
-    else
-    {
-        for (const auto& mount : drives)
-            scanDirectory(layout, drives, mount, false, found);
-        std::sort(found.folders.begin(), found.folders.end());
-    }
-    std::sort(found.templates.begin(), found.templates.end(), [](const Template& a, const Template& b) {
+    std::vector<Template> found;
+    for (const auto& drive : drives)
+        scanDirectory(layout, drives, drive, true, found);
+    std::sort(found.begin(), found.end(), [](const Template& a, const Template& b) {
         return std::tie(a.label, a.path) < std::tie(b.label, b.path);
     });
     return found;
@@ -368,7 +344,10 @@ bool reloadAvailable(const Layout& layout)
 
 void checkHook(const Layout& layout)
 {
-    if (fs::exists(layout.hook()) && readFile(layout.hook()) != hookContents)
+    if (!fs::exists(layout.hook()))
+        return;
+    const auto existing = readFile(layout.hook());
+    if (existing != hookContents && existing != previousHookContents)
         throw std::runtime_error("Another startup configuration is using the Local templates hook path");
 }
 
@@ -400,12 +379,12 @@ int main(int argc, char** argv)
             return 1;
         const std::string command = argv[1];
         if (command != "refresh" && command != "enable" && command != "restore" &&
-            command != "boot" && command != "discover" && command != "preview")
+            command != "boot" && command != "preview")
             return 1;
-        alarm(command == "boot" ? 10 : 600);
+        alarm(command == "boot" ? 10 : 60);
         if (command == "preview")
         {
-            for (const auto& item : scan(layout).templates)
+            for (const auto& item : scan(layout))
                 std::cout << item.path << '\n';
             return 0;
         }
@@ -425,8 +404,6 @@ int main(int argc, char** argv)
 
         if (command == "enable" && !reloadAvailable(layout))
             return 4;
-        if (command == "discover" && !fs::exists(layout.hook()))
-            return 0;
 
         if (command == "boot")
         {
@@ -434,29 +411,24 @@ int main(int argc, char** argv)
             std::this_thread::sleep_for(std::chrono::seconds(5));
         }
 
-        // Discovery can be slow on large drives. Lock the live files only while publishing.
+        // Lock the live files only while publishing.
         const auto initialRevision = revision(layout);
-        const auto found = scan(layout, command == "boot");
-        const auto folderIndex = Json(found.folders).dump();
+        const auto found = scan(layout);
         const Lock lock(layout.state() / "refresh.lock");
-        if (command == "discover" && !fs::exists(layout.hook()))
-            return 0;
         if (revision(layout) != initialRevision)
             throw std::runtime_error("A newer refresh finished during the scan");
         if (command == "enable")
             checkHook(layout);
         advanceRevision(layout);
-        refresh(layout, found.templates);
-        if (command != "boot")
-            atomicWrite(layout.state() / "folders.json", folderIndex, 0600);
+        refresh(layout, found);
         if (command == "enable")
         {
             atomicWrite(layout.state() / "template-refresh", readFile(argv[0]), 0755);
             atomicWrite(layout.hook(), hookContents, 0644);
         }
 
-        std::cout << "Local templates: " << found.templates.size() << " project(s)\n";
-        return found.templates.empty() && command == "refresh" ? 3 : 0;
+        std::cout << "Local templates: " << found.size() << " project(s)\n";
+        return found.empty() && command == "refresh" ? 3 : 0;
     }
     catch (const std::exception& error)
     {
