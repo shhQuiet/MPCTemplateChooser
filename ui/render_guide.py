@@ -17,11 +17,13 @@ def render(path):
     draw.text((x, 186), "Start new projects from your own templates", font=heading, fill="#e7f4f5")
 
     instructions = [
-        (256, "Save an MPC project (.xpj) in Templates or templates at the top level"),
+        (256, 'Save an MPC project (.xpj) in a folder named "Templates" at the top level'),
         (291, "of any drive. You can organize projects in subfolders."),
         (353, "Turn on Enable and restart MPC. The startup script replaces Demos"),
         (388, "with Local templates on the New Project screen. Pick a project to open it."),
         (450, "Turn off Enable to restore Demos on the next launch."),
+        (510, "Once enabled, you can remove Template Chooser. The startup script"),
+        (545, "keeps working. Reinstall the plugin to turn the feature on or off."),
     ]
     for y, line in instructions:
         assert draw.textlength(line, font=body) < 1195 - x

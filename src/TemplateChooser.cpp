@@ -88,7 +88,7 @@ private:
         info.name = "MPC Template Chooser";
         info.vendor = "Elsewave";
         info.uniqueId = MPC_FOURCC('E', 'L', 't', 'c');
-        info.version = 102;
+        info.version = 103;
         info.isInstrument = false;
         info.numInputs = info.numOutputs = 2;
         return info;
