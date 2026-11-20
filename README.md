@@ -4,9 +4,9 @@ MPC Template Chooser adds a **Local templates** row to the standalone MPC New Pr
 
 ## MPC X setup
 
-The package targets the original MPC X running MPC OS 3.10.1 or later. Enable **External Plugin Support** under **Preferences → Enhancements**. Extract the **Elsewave - VST - MPC Template Chooser** folder into the `VST2 Plugins` directory on your plugin drive. Load **MPC Template Chooser** into an effect insert and open its **CHOOSER** page. The effect passes audio through unchanged.
+The package targets the original MPC X with MPC OS 3.10.1 or later and the Open MPC boot-reload service installed. Enable **External Plugin Support** under **Preferences → Enhancements**. Extract the **Elsewave - VST - MPC Template Chooser** folder into the `VST2 Plugins` directory on your plugin drive. Load **MPC Template Chooser** into an effect insert and open its **CHOOSER** page. The effect passes audio through unchanged.
 
-- Checking **Enable templates** installs a startup hook. It uses the Open MPC startup-configuration reload already present on the target MPC X.
+- Checking **Enable templates** installs a startup hook. Restart the MPC to let the hook build the row.
 - Unchecking **Enable templates** removes the hook and restores the original Demos row.
 - Tap **ⓘ** for setup instructions and **OK** to close them.
 
@@ -16,7 +16,7 @@ The startup helper finds projects and builds the list before MPC opens. It backs
 
 The startup scan has a 10-second limit, including time for the drives to mount. Restart MPC after connecting a drive to include its templates in the startup dialog.
 
-Both builds pass SDK validation. Loading a generated tile from the SSD and running the hook through an actual MPC reboot still require an in-app test.
+On the original MPC X running 3.10.1.12, the controls and startup scan were exercised. Opening a project from the generated row still needs verification. The startup layout is unverified on 64-bit devices.
 
 ## Build
 
@@ -29,4 +29,10 @@ c++ -std=c++17 -DLOCAL_TEMPLATES_TEST -Ibuild/deps helper/Refresh.cpp -o build/t
 python3 tests/refresh_test.py build/test-refresh
 ```
 
-The MPC logs the helper's outcome in the `acvs.service` journal. The original dialog is saved at `/data/local-templates/original-dialog.json`. For recovery over SSH, remove `/data/system/etc/overlay/systemd/system/acvs.service.d/60-local-templates.conf` to disable the hook, then restore the saved dialog to `/sdcard/Demos/NewProjectDialog.json` if needed.
+The VST starts its bundled helper when the checkbox changes. The helper writes outside the plugin folder. It configures the startup hook at `/data/system/etc/overlay/systemd/system/acvs.service.d/60-local-templates.conf`, backs up the original dialog to `/data/local-templates/original-dialog.json`, and updates `/sdcard/Demos/NewProjectDialog.json` when the hook runs. The outcome appears in the `acvs.service` journal.
+
+Turn off **Enable templates** before uninstalling if you want to restore Demos. If the MPC UI is unavailable and SSH is already enabled, run `/data/local-templates/template-refresh restore` and `systemctl daemon-reload`. This removes the hook and restores the saved dialog.
+
+## License
+
+The plugin and startup helper are MIT licensed. Packaged builds include the license notices for the Akai MPC Plugin Builder SDK and nlohmann/json.

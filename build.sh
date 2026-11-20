@@ -28,6 +28,7 @@ if hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest() != expecte
     sys.exit("nlohmann/json header has the wrong checksum")
 PY
 
+cp "$project/LICENSE" "$project/Content/LICENSE"
 cp "$MPC_SDK/LICENSE" "$project/Content/Akai-SDK-LICENSE.txt"
 cp "$project/helper/nlohmann-json-LICENSE.txt" "$project/Content/nlohmann-json-LICENSE.txt"
 "$zig_bin" c++ -target arm-linux-musleabihf -mcpu=cortex_a17 -std=c++17 -O2 -static -s \
