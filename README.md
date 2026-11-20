@@ -16,7 +16,7 @@ The startup helper finds projects and builds the list before MPC opens. It backs
 
 The startup scan has a 10-second limit, including time for the drives to mount. Restart MPC after connecting a drive to include its templates in the startup dialog.
 
-On the original MPC X running 3.10.1.12, the controls and startup scan were exercised. Opening a project from the generated row still needs verification. The startup layout is unverified on 64-bit devices.
+The controls, startup scan, and opening a project from **Local templates** were tested on the original MPC X running MPC OS 3.10.1.12. The startup layout is unverified on 64-bit devices.
 
 ## Build
 
