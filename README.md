@@ -18,6 +18,10 @@ The startup scan has a 10-second limit, including time for the drives to mount. 
 
 The controls, startup scan, and opening a project from **Local templates** were tested on the original MPC X running MPC OS 3.10.1.12. The startup layout is unverified on 64-bit devices.
 
+The Open MPC catalog release includes the ARMv7 build for the original MPC X. The AArch64 build is available from source and awaits Gen2 hardware verification.
+
+On supported firmware and mounts, the shared installer used by current [Open MPC add-ins](https://github.com/open-mpc/mpc-vst-plugins/blob/main/docs/ADDINS.md) installs the boot-reload service. For example, a current MPC Remote add-in install on a supported MPC can supply it.
+
 ## Build
 
 Use the [Akai MPC Plugin Builder SDK](https://github.com/inmusic-software/mpc-plugin-builder-sdk), Zig 0.15.2, Python 3, and Pillow. Set `MPC_SDK` to the SDK checkout and run `./build.sh`. Set `ZIG` or `PYTHON` to override the tools on your path. The script fetches the pinned [nlohmann/json](https://github.com/nlohmann/json) header (MIT) and packages the 32-bit and 64-bit ARM builds in `dist/`. The startup configuration described here is specific to the target MPC X.
