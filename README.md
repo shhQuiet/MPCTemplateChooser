@@ -20,6 +20,8 @@ The controls, startup scan, and opening a project from **Local templates** were 
 
 The Open MPC catalog release includes the ARMv7 build for the original MPC X. The AArch64 build is available from source and awaits Gen2 hardware verification.
 
+**Gen 2 testers wanted.** Download the [experimental Gen 2 build](https://github.com/shhQuiet/MPCTemplateChooser/releases/tag/gen2-test-v1.0.1). Please report your MPC model and firmware, whether Local templates appears after restart, and whether disabling the hook restores Demos.
+
 On supported firmware and mounts, the shared installer used by current [Open MPC add-ins](https://github.com/open-mpc/mpc-vst-plugins/blob/main/docs/ADDINS.md) installs the boot-reload service. For example, a current MPC Remote add-in install on a supported MPC can supply it.
 
 ## Build
